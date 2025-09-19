@@ -12,3 +12,4 @@
 
    4. Follow the controller and service folder structure religiously
    5. DO NOT PUSH ANYTHING INTO THE MAIN BRANCH!!!!!!!!!!!!!!!
+   6. Drop all tables that are overlapping with the tables given in your database
