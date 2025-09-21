@@ -8,4 +8,5 @@ import java.util.Optional;
 
 public interface EmiCardRepository extends JpaRepository<EmiCard,Integer> {
     Optional<EmiCard> findByUser(User user);
+
 }

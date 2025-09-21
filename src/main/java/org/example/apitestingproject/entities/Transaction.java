@@ -1,4 +1,5 @@
 package org.example.apitestingproject.entities;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ public class Transaction {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "PURCHASE_ID", nullable = false, foreignKey = @ForeignKey(name = "FK_TXN_PURCHASE"))
+    @JsonIgnore
     private Purchase purchase;
 
     @Column(name = "TRANSACTION_DATE")

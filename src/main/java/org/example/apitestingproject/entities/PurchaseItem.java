@@ -1,4 +1,5 @@
 package org.example.apitestingproject.entities;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -15,6 +16,7 @@ public class PurchaseItem {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "PURCHASE_ID", nullable = false,
             foreignKey = @ForeignKey(name = "FK_PURCHASE_ITEM_PURCHASE"))
+    @JsonIgnore
     private Purchase purchase;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
@@ -94,5 +96,4 @@ public class PurchaseItem {
         this.lineTotal = lineTotal;
     }
 
-    // getters/setters/equals/hashCode…
 }

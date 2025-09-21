@@ -1,5 +1,6 @@
 package org.example.apitestingproject.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ public class EmiCard {
 
     @OneToOne (optional = false)
     @JoinColumn(name = "USER_ID", nullable = false, foreignKey = @ForeignKey(name = "FK_EMICARDS_USER"))
+    @JsonIgnore
     private User user;
 
     @ManyToOne(optional = false)

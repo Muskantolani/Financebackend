@@ -37,8 +37,8 @@ public class UserAndCardTypePopulateTest {
         titanium.setDefaultLimit(new BigDecimal("500000"));
         titanium.setJoiningFee(new BigDecimal("5000"));
 
-        cardTypeRepository.save(gold);
-        cardTypeRepository.save(titanium);
+        gold = cardTypeRepository.save(gold);
+        titanium = cardTypeRepository.save(titanium);
 
         // --- Pick Banks from previous BankPopulateTest ---
         Bank sbi = bankRepository.findById(1).orElseThrow();
