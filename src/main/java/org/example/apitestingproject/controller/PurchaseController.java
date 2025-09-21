@@ -67,4 +67,7 @@ public class PurchaseController {
         return emiCardRepository.findById(cardId)
                 .orElseThrow(() -> new RuntimeException("EmiCard not found with id: " + cardId));
     }
+
+
+
 }

@@ -95,6 +95,21 @@ public class PurchaseService {
         installmentScheduleRepository.saveAll(schedules);
     }
 
+
+    public List<ProductDTO> getProductsByUser(int userId) {
+        return purchaseRepository.findByUser_Id(userId)
+                .stream()
+                .flatMap(p -> p.getItems().stream())
+                .map(PurchaseItem::getProduct)
+                .distinct()  // remove duplicates if same product bought multiple times
+                .map(p -> new ProductDTO(p.getId(), p.getProductName(), p.getCost(), p.getCategory()))
+                .toList();
+    }
+
+
 }
+
+
+
 
 

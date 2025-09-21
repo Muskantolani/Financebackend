@@ -1,5 +1,6 @@
 package org.example.apitestingproject.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,6 +23,7 @@ public class Purchase {
     private User user;
 
     @OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<PurchaseItem> items = new ArrayList<>();
 
     @PrePersist @PreUpdate

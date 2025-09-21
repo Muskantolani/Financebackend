@@ -22,6 +22,7 @@ public class PurchaseItem {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "PRODUCT_ID", nullable = false,
             foreignKey = @ForeignKey(name = "FK_PURCHASE_ITEM_PRODUCT"))
+    @JsonIgnore
     private Product product;
 
     @Column(name = "QUANTITY", nullable = false)
