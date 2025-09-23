@@ -20,7 +20,17 @@
 //    public @ResponseBody ErrorResponse handleProductAlreadyExistsException(ProductAlreadyExistsException ex) {
 //        return new ErrorResponse(HttpStatus.CONFLICT.value(), ex.getMessage());
 //    }
+//     @ExceptionHandler(value = TransactionNotFoundException.class)
+//    @ResponseStatus(HttpStatus.NOT_FOUND)
+//    public ErrorResponse handleTransactionNotFound(TransactionNotFoundException ex) {
+//        return new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage());
+//    }
 //
+//    @ExceptionHandler(PurchaseNotFoundException.class)
+//    @ResponseStatus(HttpStatus.NOT_FOUND)
+//    public ErrorResponse handlePurchaseNotFound(PurchaseNotFoundException ex) {
+//        return new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage());
+//    }
 //    public GlobalProductHandler() {
 //        System.out.println("Global account exception handler invoked");
 //    }
