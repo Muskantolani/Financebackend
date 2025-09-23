@@ -14,7 +14,7 @@ import java.util.Objects;
 )
 public class AuditLog {
 
-    public enum ActionType { Login, Update_Profile, Payment, Approval, Deactivation }
+    public enum ActionType { Login, Update_Profile, Payment, Approval, Deactivation, Registration }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

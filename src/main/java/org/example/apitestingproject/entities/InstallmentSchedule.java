@@ -1,5 +1,6 @@
 package org.example.apitestingproject.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,8 +17,9 @@ public class InstallmentSchedule {
     @Column(name = "SCHEDULE_ID")
     private int id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "PURCHASE_ID", nullable = false, foreignKey = @ForeignKey(name = "FK_SCHEDULE_PURCHASE"))
+    @JsonBackReference
     private Purchase purchase;
 
     @Column(name = "INSTALLMENT_NO", nullable = false)
@@ -36,6 +38,11 @@ public class InstallmentSchedule {
     @ManyToOne
     @JoinColumn(name = "PAID_TXN_ID", foreignKey = @ForeignKey(name = "FK_SCHEDULE_TXN"))
     private Transaction paidTransaction;
+
+    @Column(name = "PENALTY_AMOUNT", precision = 12, scale = 2, nullable = true)
+    private BigDecimal penaltyAmount = BigDecimal.ZERO;
+    public BigDecimal getPenaltyAmount() { return penaltyAmount; }
+    public void setPenaltyAmount(BigDecimal penaltyAmount) { this.penaltyAmount = penaltyAmount; }
 
     // getters/setters, equals/hashCode
 

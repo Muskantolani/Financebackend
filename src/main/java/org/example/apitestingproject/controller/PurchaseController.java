@@ -2,9 +2,7 @@ package org.example.apitestingproject.controller;
 
 import org.example.apitestingproject.DTO.EmiOptionResponse;
 import org.example.apitestingproject.DTO.PurchaseRequest;
-import org.example.apitestingproject.entities.EmiCard;
-import org.example.apitestingproject.entities.Product;
-import org.example.apitestingproject.entities.Purchase;
+import org.example.apitestingproject.entities.*;
 import org.example.apitestingproject.repository.EmiCardRepository;
 import org.example.apitestingproject.service.EmiPreviewService;
 import org.example.apitestingproject.service.ProductService;
@@ -63,9 +61,51 @@ public class PurchaseController {
     }
 
 
+    // Pay a single installment
+    @PostMapping("/installments/{installmentId}/pay")
+    public ResponseEntity<Transaction> payInstallment(
+            @PathVariable int installmentId,
+            @RequestParam int userId) {
+        Transaction txn = purchaseService.payInstallment(installmentId, userId);
+        return ResponseEntity.ok(txn);
+    }
+
     private EmiCard fetchEmiCardById(int cardId) {
         return emiCardRepository.findById(cardId)
                 .orElseThrow(() -> new RuntimeException("EmiCard not found with id: " + cardId));
+    }
+
+
+
+    @GetMapping("/overdue")
+    public ResponseEntity<List<InstallmentSchedule>> getOverdueInstallments() {
+        return ResponseEntity.ok(purchaseService.getOverdueInstallments());
+    }
+
+
+
+    // CRONJOB OCCURS BY ITSELF @ 00.00
+    //Below func for manual trigger
+
+    @PostMapping("/update-overdue")
+    public ResponseEntity<String> updateOverdue() {
+        int updated = purchaseService.updateOverdueInstallments();
+        return ResponseEntity.ok(updated + " installments marked overdue");
+    }
+
+    @GetMapping("/testing")
+
+    public ResponseEntity<String> findPendingBefore() {
+        List<InstallmentSchedule> updated = purchaseService.findPendingFirst();
+        return ResponseEntity.ok(updated + " installments marked overdue");
+    }
+
+
+
+    @PostMapping("/calculatePenalty")
+    public ResponseEntity<String> calculatePenaltiesNow() {
+        purchaseService.calculatePenalties();
+        return ResponseEntity.ok("Penalties calculated successfully!");
     }
 
 

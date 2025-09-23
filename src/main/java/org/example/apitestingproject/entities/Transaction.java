@@ -25,12 +25,56 @@ public class Transaction {
     @Column(name = "AMOUNT_PAID", precision = 12, scale = 2, nullable = false)
     private BigDecimal amountPaid;
 
+    // Added Transaction method
+
+    public String getTransaction_method() {
+        return transaction_method;
+    }
+
+    public void setTransaction_method(String transaction_method) {
+        this.transaction_method = transaction_method;
+    }
+
+    @Column(name = "TRANSACTION_METHOD", nullable = true)
+    private  String transaction_method;
+
+
+    public enum TransactionType {
+        PROCESSING_FEE,
+        INSTALLMENT
+    }
+
+
+
+
+    public TransactionType getTransactionType() {
+        return transactionType;
+    }
+
+    public void setTransactionType(TransactionType transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private TransactionType transactionType;
+
     // getters/setters, equals/hashCode
 
     public Transaction(Purchase purchase, LocalDate transactionDate, BigDecimal amountPaid) {
         this.purchase = purchase;
         this.transactionDate = transactionDate;
         this.amountPaid = amountPaid;
+    }
+
+
+    public Transaction(int id, Purchase purchase, LocalDate transactionDate, BigDecimal amountPaid, String transaction_method, TransactionType transactionType) {
+        this.id = id;
+        this.purchase = purchase;
+        this.transactionDate = transactionDate;
+        this.amountPaid = amountPaid;
+        this.transaction_method = transaction_method;
+        this.transactionType = transactionType;
     }
 
     public Transaction() {

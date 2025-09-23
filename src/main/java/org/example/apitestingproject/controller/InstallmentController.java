@@ -1,5 +1,6 @@
 package org.example.apitestingproject.controller;
 
+import org.example.apitestingproject.DTO.InstallmentScheduleDTO;
 import org.example.apitestingproject.DTO.InstallmentSchedute;
 import org.example.apitestingproject.service.InstallmentService;
 import org.springframework.http.ResponseEntity;
@@ -22,4 +23,14 @@ public class InstallmentController {
         List<InstallmentSchedute> schedules = installmentService.getSchedulesByUser(userId);
         return ResponseEntity.ok(schedules);
     }
+
+
+    @GetMapping("/{userId}/installments_w_products")
+    public ResponseEntity<List<InstallmentScheduleDTO>> getScheduleandProdcutsByUser(@PathVariable int userId) {
+        List<InstallmentScheduleDTO> schedules = installmentService.getScheduleandProdcutsByUser(userId);
+        return ResponseEntity.ok(schedules);
+    }
+
+
+
 }
