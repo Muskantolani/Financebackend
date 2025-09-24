@@ -62,6 +62,11 @@ public interface InstallmentScheduleRepository extends JpaRepository<Installment
     List<InstallmentSchedule> findPendingBefore(@Param("pending") InstallmentSchedule.PaymentStatus pending,
                                                 @Param("today") LocalDate today);
 
+    boolean existsByPurchaseUserIdAndPaymentStatus(int userId, InstallmentSchedule.PaymentStatus paymentStatus);
+
+    List<InstallmentSchedule> findByPurchaseUserIdAndPaymentStatus(int userId, InstallmentSchedule.PaymentStatus paymentStatus);
+
+    List<InstallmentSchedule> findByPurchaseUserId(int userId);
 
 
 // org.example.model.PaymentStatus.Overdue

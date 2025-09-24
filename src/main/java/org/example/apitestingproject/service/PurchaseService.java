@@ -8,6 +8,10 @@ import org.example.apitestingproject.entities.*;
 import org.example.apitestingproject.repository.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.repository.query.Param;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +36,7 @@ public class PurchaseService {
     private final EmiCardRepository emiCardRepository;
     private final InstallmentScheduleRepository installmentScheduleRepository;
     private final TransactionRepository transactionRepository;
+    private final  UserRiskService userRiskService;
     private final AuditLogRepository auditLogRepository;
     private static final BigDecimal PENALTY_RATE = new BigDecimal("0.02"); // 2% per month
 
@@ -40,7 +45,7 @@ public class PurchaseService {
     public PurchaseService(PurchaseRepository purchaseRepository,
                            UserRepository userRepository,
                            ProductRepository productRepository,
-                           EmiCardRepository emiCardRepository, InstallmentScheduleRepository installmentScheduleRepository, TransactionRepository transactionRepository, AuditLogRepository auditLogRepository) {
+                           EmiCardRepository emiCardRepository, InstallmentScheduleRepository installmentScheduleRepository, TransactionRepository transactionRepository, UserRiskService userRiskService,AuditLogRepository auditLogRepository) {
         this.purchaseRepository = purchaseRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
@@ -48,6 +53,7 @@ public class PurchaseService {
         this.installmentScheduleRepository = installmentScheduleRepository;
         this.transactionRepository = transactionRepository;
         this.auditLogRepository = auditLogRepository;
+        this.userRiskService = userRiskService;
     }
 
     @Transactional
@@ -58,6 +64,13 @@ public class PurchaseService {
 
         EmiCard card = emiCardRepository.findByUserId(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("Card not found for user " + request.getUserId()));
+
+
+        User.UserRiskProfile profile = userRiskService.evaluateUser(request.getUserId());
+        if (profile == User.UserRiskProfile.BAD) {
+            // just throw exception instead of returning ResponseEntity
+            throw new IllegalStateException("Card blocked due to overdue installments");
+        }
 
 
         EmiCard.ActivationStatus cardActivationStatus = card.getActivationStatus();
@@ -116,20 +129,16 @@ public class PurchaseService {
 
         // generate installment schedules
         generateInstallmentSchedule(savedPurchase);
-
-
         return savedPurchase;
     }
 
 
-    private void generateInstallmentSchedule(Purchase purchase)  {
+    private void generateInstallmentSchedule(Purchase purchase) {
         int tenure = purchase.getTenurePeriod();
         BigDecimal totalPayable = purchase.getAmount().add(purchase.getProcessingFeeApplied());
         BigDecimal monthlyInstallment = totalPayable.divide(BigDecimal.valueOf(tenure), 2, BigDecimal.ROUND_HALF_UP);
 
         List<InstallmentSchedule> schedules = new ArrayList<>();
-
-
 
 
         for (int i = 1; i <= tenure; i++) {
@@ -271,6 +280,8 @@ public class PurchaseService {
     }
 
     public List<InstallmentSchedule> getOverdueInstallments() {
+//        System.out.println("HIII");
+//        System.out.println(installmentScheduleRepository.findPendingBefore(InstallmentSchedule.PaymentStatus.Pending, LocalDate.now()));
 
         return installmentScheduleRepository.findByPaymentStatus(InstallmentSchedule.PaymentStatus.Overdue);
     }
@@ -303,15 +314,15 @@ public class PurchaseService {
             long daysOverdue = ChronoUnit.DAYS.between(schedule.getDueDate(), LocalDate.now());
 
             // Grace period
-            int graceDays = 5;
+            int graceDays = 5; // you can make it configurable
             if (daysOverdue <= graceDays) {
-                schedule.setPenaltyAmount(BigDecimal.ZERO);
+                schedule.setPenaltyAmount(BigDecimal.valueOf(0));
                 continue;
             }
 
             // Exponential penalty slab logic
-            BigDecimal installmentAmount = schedule.getInstallmentAmount();
-            BigDecimal penalty = calculateExponentialPenalty(daysOverdue - graceDays, installmentAmount);
+            BigDecimal installmentAmout = schedule.getInstallmentAmount();
+            BigDecimal penalty = calculateExponentialPenalty(daysOverdue - graceDays, installmentAmout);
             schedule.setPenaltyAmount(penalty);
 
             ObjectMapper mapper = new ObjectMapper();
@@ -390,7 +401,6 @@ public class PurchaseService {
 
         return principal.multiply(mcMultiplier.subtract(BigDecimal.ONE), new MathContext(10, RoundingMode.HALF_UP));
     }
-
 
     @Scheduled(cron = "0 0 0 * * ?") // every day at midnight run penalty recalculation
     public void runPenaltyCalculation() throws JsonProcessingException {

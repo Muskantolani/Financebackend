@@ -9,15 +9,38 @@ import java.util.Objects;
 @Table(name = "TRANSACTIONS")
 public class Transaction {
 
+    public enum TransactionType {
+        JOINING_FEE,
+        INSTALLMENT
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "TRANSACTION_ID")
     private int id;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "PURCHASE_ID", nullable = false, foreignKey = @ForeignKey(name = "FK_TXN_PURCHASE"))
+    @ManyToOne
+    @JoinColumn(name = "PURCHASE_ID",   nullable = true, foreignKey = @ForeignKey(name = "FK_TXN_PURCHASE"))
     @JsonIgnore
     private Purchase purchase;
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+    @ManyToOne
+    @JoinColumn(name = "USER_ID", foreignKey = @ForeignKey(name = "FK_TXN_USER"))
+    private User user;
+
+    @ManyToOne
+    private InstallmentSchedule installment; // null for processing fee
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private TransactionType transactionType;
 
     @Column(name = "TRANSACTION_DATE")
     private LocalDate transactionDate;
@@ -39,14 +62,6 @@ public class Transaction {
     private  String transaction_method;
 
 
-    public enum TransactionType {
-        PROCESSING_FEE,
-        INSTALLMENT
-    }
-
-
-
-
     public TransactionType getTransactionType() {
         return transactionType;
     }
@@ -55,9 +70,6 @@ public class Transaction {
         this.transactionType = transactionType;
     }
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    private TransactionType transactionType;
 
     // getters/setters, equals/hashCode
 

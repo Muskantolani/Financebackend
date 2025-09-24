@@ -2,6 +2,7 @@ package org.example.apitestingproject.service;
 
 import org.example.apitestingproject.DTO.EmiOptionResponse;
 import org.example.apitestingproject.entities.EmiCard;
+import org.example.apitestingproject.entities.User;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -10,6 +11,11 @@ import java.util.List;
 
 @Service
 public class EmiPreviewService {
+    private final UserRiskService userRiskService;
+
+    public EmiPreviewService(UserRiskService userRiskService) {
+        this.userRiskService = userRiskService;
+    }
 
     public List<EmiOptionResponse> generateEmiOptions(BigDecimal productPrice, EmiCard card) {
         List<Integer> tenures = List.of(3, 6, 9, 12);
@@ -36,6 +42,10 @@ public class EmiPreviewService {
     }
 
     private BigDecimal calculateProcessingFee(BigDecimal price, EmiCard card, int months) {
+        // Determine user risk profile dynamically
+        User user = card.getUser();
+        User.UserRiskProfile riskProfile = userRiskService.evaluateUser(user.getId());
+
         String cardType = card.getCardType().getName().name();
         BigDecimal rate;
 
@@ -57,6 +67,16 @@ public class EmiPreviewService {
             }
         }
 
+        // Adjust rate based on risk profile
+        if (riskProfile == User.UserRiskProfile.GOOD) {
+            rate = rate.multiply(new BigDecimal("0.9")); // 10% discount
+            System.out.println("User is good");
+        } else if (riskProfile == User.UserRiskProfile.BAD) {
+            rate = rate.multiply(new BigDecimal("1.5")); // 50% increase
+            System.out.println("user is bad");
+        }
+
         return price.multiply(rate).setScale(2, RoundingMode.HALF_UP);
     }
+
 }

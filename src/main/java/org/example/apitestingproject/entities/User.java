@@ -15,6 +15,11 @@ public class User {
     public enum YesNo { Yes, No }
     public enum AccountStatus { Pending, Activated, Rejected }
     public enum Role {User, Super_Admin, Sub_Admin}
+    public enum UserRiskProfile {
+        GOOD,
+        AVERAGE,
+        BAD
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

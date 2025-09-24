@@ -18,14 +18,23 @@ public class TransactionService {
 
     private final TransactionRepository repository;
     private final PurchaseRepository purchaseRepository;
+    private final NotificationService notificationService;
 
-    public TransactionService(TransactionRepository repository, PurchaseRepository purchaseRepository) {
+    public TransactionService(TransactionRepository repository, PurchaseRepository purchaseRepository, NotificationService notificationService) {
         this.repository = repository;
         this.purchaseRepository = purchaseRepository;
+        this.notificationService = notificationService;
     }
 
     public Transaction createTransaction(Transaction transaction) {
-        return repository.save(transaction);
+        Transaction saved = repository.save(transaction);
+
+        // Send notification to the user who made the purchase
+        Integer userId = saved.getPurchase().getUser().getId();
+        notificationService.createNotification(userId,
+                "Your payment of ₹" + saved.getAmountPaid() + " for purchase #" + saved.getPurchase().getId() + " was successful.");
+
+        return saved;
     }
 
     public Transaction updateTransaction(Integer id, Transaction transaction) {
