@@ -71,6 +71,14 @@ public class OtpVerification {
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
 
+    public LocalDateTime getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(LocalDateTime expiresAt) {
+        this.expiresAt = expiresAt;
+    }
+
     @Override
     public String toString() {
         return "OtpVerification{" +
