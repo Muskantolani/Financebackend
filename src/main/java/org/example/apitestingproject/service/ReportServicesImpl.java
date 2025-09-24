@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -54,7 +55,7 @@ public class ReportServicesImpl implements ReportServices
         CSVWriter writer = new CSVWriter(sw);
         writer.writeNext(new String[]{
                 "Purchase ID",
-                "Product Name",
+                "Product Name(s)",
                 "Card Number",
                 "Purchase Date",
                 "Amount",
@@ -62,17 +63,22 @@ public class ReportServicesImpl implements ReportServices
                 "Total Amount"
         });
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         for (Purchase p : purchases) {
+            String productNames = p.getItems().stream()
+                    .map(i -> i.getProduct().getProductName())
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("");
+
             writer.writeNext(new String[]{
                     String.valueOf(p.getId()),
-                    //p.getProduct() != null ? p.getProduct().getProductName() : "",
+                    productNames,
                     p.getCard() != null ? p.getCard().getCardNumber() : "",
-                    p.getPurchaseDate() != null ? dateFormat.format(p.getPurchaseDate()) : "",
-                    p.getAmount() != null ? String.valueOf(p.getAmount()) : "",
-                    p.getTenurePeriod() != null ? String.valueOf(p.getTenurePeriod()) : "",
-                    //p.getTotalAmount() != null ? String.valueOf(p.getTotalAmount()) : ""
+                    p.getPurchaseDate() != null ? p.getPurchaseDate().format(dateFormatter) : "",
+                    p.getAmount() != null ? p.getAmount().toString() : "0.00",
+                    p.getTenurePeriod() != null ? p.getTenurePeriod().toString() : "",
+                    p.getGrandTotal() != null ? p.getGrandTotal().toString() : "0.00"
             });
         }
 
@@ -117,27 +123,34 @@ public class ReportServicesImpl implements ReportServices
         PdfDocument pdfDoc = new PdfDocument(writer);
         Document document = new Document(pdfDoc);
 
-        document.add(new Paragraph("Purchase History").setBold().setFontSize(14).setMarginBottom(15));
+        document.add(new Paragraph("Purchase History")
+                .setBold().setFontSize(14).setMarginBottom(15));
 
         Table table = new Table(7).useAllAvailableWidth();
-        table.addHeaderCell(new Cell().add(new Paragraph("Purchase ID")));
-        table.addHeaderCell("Product Name");
+        table.addHeaderCell("Purchase ID");
+        table.addHeaderCell("Product Name(s)");
         table.addHeaderCell("Card Number");
         table.addHeaderCell("Purchase Date");
         table.addHeaderCell("Amount");
         table.addHeaderCell("Tenure Period");
         table.addHeaderCell("Total Amount");
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         for (Purchase p : purchases) {
+            // Collect product names from items
+            String productNames = p.getItems().stream()
+                    .map(i -> i.getProduct().getProductName())
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("");
+
             table.addCell(String.valueOf(p.getId()));
-            //table.addCell(p.getProduct() != null ? p.getProduct().getProductName() : "");
+            table.addCell(productNames);
             table.addCell(p.getCard() != null ? p.getCard().getCardNumber() : "");
-            table.addCell(p.getPurchaseDate() != null ? dateFormat.format(p.getPurchaseDate()) : "");
-            table.addCell(p.getAmount() != null ? p.getAmount().toString() : "");
+            table.addCell(p.getPurchaseDate() != null ? p.getPurchaseDate().format(dateFormatter) : "");
+            table.addCell(p.getAmount() != null ? p.getAmount().toString() : "0.00");
             table.addCell(p.getTenurePeriod() != null ? p.getTenurePeriod().toString() : "");
-           // table.addCell(p.getTotalAmount() != null ? p.getTotalAmount().toString() : "");
+            table.addCell(p.getGrandTotal() != null ? p.getGrandTotal().toString() : "0.00");
         }
 
         document.add(table);
