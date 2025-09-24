@@ -1,4 +1,4 @@
-package org.example.apitestingproject.DTO;
+package org.example.apitestingproject.dto;
 
 import org.example.apitestingproject.entities.Transaction;
 

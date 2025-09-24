@@ -1,4 +1,4 @@
-package org.example.apitestingproject.DTO;
+package org.example.apitestingproject.dto;
 
 import java.math.BigDecimal;
 import java.util.List;

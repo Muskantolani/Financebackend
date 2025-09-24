@@ -1,6 +1,6 @@
 package org.example.apitestingproject.service;
 
-import org.example.apitestingproject.DTO.EmiOptionResponse;
+import org.example.apitestingproject.dto.EmiOptionResponse;
 import org.example.apitestingproject.entities.EmiCard;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +11,7 @@ import java.util.List;
 @Service
 public class EmiPreviewService {
 
-    public List<EmiOptionResponse> generateEmiOptions(BigDecimal productPrice, EmiCard card) {
+    public List<org.example.apitestingproject.dto.EmiOptionResponse> generateEmiOptions(BigDecimal productPrice, EmiCard card) {
         List<Integer> tenures = List.of(3, 6, 9, 12);
 
         return tenures.stream()

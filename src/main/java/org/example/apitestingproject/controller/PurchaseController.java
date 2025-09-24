@@ -1,7 +1,7 @@
 package org.example.apitestingproject.controller;
 
-import org.example.apitestingproject.DTO.EmiOptionResponse;
-import org.example.apitestingproject.DTO.PurchaseRequest;
+import org.example.apitestingproject.dto.EmiOptionResponse;
+import org.example.apitestingproject.dto.PurchaseRequest;
 import org.example.apitestingproject.entities.EmiCard;
 import org.example.apitestingproject.entities.Product;
 import org.example.apitestingproject.entities.Purchase;
@@ -67,6 +67,12 @@ public class PurchaseController {
         return emiCardRepository.findById(cardId)
                 .orElseThrow(() -> new RuntimeException("EmiCard not found with id: " + cardId));
     }
+
+
+
+
+
+
 
 
 

@@ -1,6 +1,6 @@
 package org.example.apitestingproject.service;
 
-import org.example.apitestingproject.DTO.InstallmentSchedute;
+import org.example.apitestingproject.dto.InstallmentSchedute;
 import org.example.apitestingproject.repository.InstallmentScheduleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +17,7 @@ public class InstallmentService {
         this.scheduleRepository = scheduleRepository;
     }
 
-    public List<InstallmentSchedute> getSchedulesByUser(int userId) {
+    public List<org.example.apitestingproject.dto.InstallmentSchedute> getSchedulesByUser(int userId) {
         return scheduleRepository.findAllByUserId(userId)
                 .stream()
                 .map(s -> new InstallmentSchedute(

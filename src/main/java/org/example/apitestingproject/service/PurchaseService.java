@@ -1,6 +1,9 @@
 package org.example.apitestingproject.service;
 
-import org.example.apitestingproject.DTO.*;
+import org.example.apitestingproject.dto.ProductDTO;
+import org.example.apitestingproject.dto.PurchaseItemRequest;
+import org.example.apitestingproject.dto.PurchaseRequest;
+//import org.example.apitestingproject.dto.ProductAdminDisplayDTO;
 import org.example.apitestingproject.entities.*;
 import org.example.apitestingproject.repository.*;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package org.example.apitestingproject.DTO;
+package org.example.apitestingproject.dto;
 
 import lombok.Builder;
 import lombok.Getter;

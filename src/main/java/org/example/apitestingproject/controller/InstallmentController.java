@@ -1,6 +1,6 @@
 package org.example.apitestingproject.controller;
 
-import org.example.apitestingproject.DTO.InstallmentSchedute;
+import org.example.apitestingproject.dto.InstallmentSchedute;
 import org.example.apitestingproject.service.InstallmentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
