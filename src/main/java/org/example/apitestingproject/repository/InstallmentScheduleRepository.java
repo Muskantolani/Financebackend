@@ -2,6 +2,7 @@ package org.example.apitestingproject.repository;
 
 import org.example.apitestingproject.entities.InstallmentSchedule;
 import org.example.apitestingproject.entities.Transaction;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface InstallmentScheduleRepository extends JpaRepository<InstallmentSchedule,Integer> {
+
+
 
     @Query("""
             SELECT s 
@@ -34,6 +37,13 @@ public interface InstallmentScheduleRepository extends JpaRepository<Installment
                                 @Param("pending") InstallmentSchedule.PaymentStatus pending,
                                 @Param("today") LocalDate today);
 
+
+
+    @Query("SELECT i.id FROM InstallmentSchedule i " +
+            "WHERE i.dueDate < :today " +
+            "AND i.paymentStatus = :pending")
+    List<Integer> findOverdueInstallmentIds(@Param("pending") InstallmentSchedule.PaymentStatus pending,
+                                       @Param("today") LocalDate today);
 
     List<InstallmentSchedule> findByPaymentStatus(InstallmentSchedule.PaymentStatus paymentStatus);
 

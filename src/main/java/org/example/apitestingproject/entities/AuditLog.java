@@ -1,5 +1,6 @@
 package org.example.apitestingproject.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -14,7 +15,7 @@ import java.util.Objects;
 )
 public class AuditLog {
 
-    public enum ActionType { Login, Update_Profile, Payment, Approval, Deactivation, Registration }
+    public enum ActionType { Login, Update_Profile, Payment, Approval, Deactivation, Registration, ClientSide, InstallmentStatusUpdate }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,9 +24,11 @@ public class AuditLog {
 
     @ManyToOne
     @JoinColumn(name = "USER_ID", foreignKey = @ForeignKey(name = "FK_AUDIT_USER"))
+    @JsonIgnore
     private User user;
 
     @ManyToOne
+    @JsonIgnore
     @JoinColumn(name = "ADMIN_ID", foreignKey = @ForeignKey(name = "FK_AUDIT_ADMIN"))
     private Admin admin;
 
@@ -39,6 +42,10 @@ public class AuditLog {
     @Column(name = "IP_ADDRESS", length = 50)
     private String ipAddress;
 
+
+    @Column(name = "ACTION_DETAILS")
+    private String actionDetails;
+
     public AuditLog() {
     }
 
@@ -50,7 +57,24 @@ public class AuditLog {
         this.ipAddress = ipAddress;
     }
 
-    // getters/setters, equals/hashCode
+    public AuditLog(int id, User user, Admin admin, ActionType actionType, LocalDateTime actionTimestamp, String ipAddress, String actionDetails) {
+        this.id = id;
+        this.user = user;
+        this.admin = admin;
+        this.actionType = actionType;
+        this.actionTimestamp = actionTimestamp;
+        this.ipAddress = ipAddress;
+        this.actionDetails = actionDetails;
+    }
+
+
+    public String getActionDetails() {
+        return actionDetails;
+    }
+
+    public void setActionDetails(String actionDetails) {
+        this.actionDetails = actionDetails;
+    }
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
@@ -78,6 +102,7 @@ public class AuditLog {
                 ", actionType=" + actionType +
                 ", actionTimestamp=" + actionTimestamp +
                 ", ipAddress='" + ipAddress + '\'' +
+                ", actionDetails='" + actionDetails + '\'' +
                 '}';
     }
 

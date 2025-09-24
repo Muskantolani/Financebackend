@@ -1,5 +1,6 @@
 package org.example.apitestingproject.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.example.apitestingproject.DTO.EmiOptionResponse;
 import org.example.apitestingproject.DTO.PurchaseRequest;
 import org.example.apitestingproject.entities.*;
@@ -65,8 +66,8 @@ public class PurchaseController {
     @PostMapping("/installments/{installmentId}/pay")
     public ResponseEntity<Transaction> payInstallment(
             @PathVariable int installmentId,
-            @RequestParam int userId) {
-        Transaction txn = purchaseService.payInstallment(installmentId, userId);
+            @RequestParam int userId, @RequestParam String paymentMethod) throws JsonProcessingException {
+        Transaction txn = purchaseService.payInstallment(installmentId, userId, paymentMethod);
         return ResponseEntity.ok(txn);
     }
 
@@ -85,13 +86,16 @@ public class PurchaseController {
 
 
     // CRONJOB OCCURS BY ITSELF @ 00.00
+
     //Below func for manual trigger
 
     @PostMapping("/update-overdue")
-    public ResponseEntity<String> updateOverdue() {
+    public ResponseEntity<String> updateOverdue() throws JsonProcessingException {
         int updated = purchaseService.updateOverdueInstallments();
         return ResponseEntity.ok(updated + " installments marked overdue");
     }
+
+
 
     @GetMapping("/testing")
 
@@ -103,10 +107,11 @@ public class PurchaseController {
 
 
     @PostMapping("/calculatePenalty")
-    public ResponseEntity<String> calculatePenaltiesNow() {
+    public ResponseEntity<String> calculatePenaltiesNow() throws JsonProcessingException {
         purchaseService.calculatePenalties();
         return ResponseEntity.ok("Penalties calculated successfully!");
     }
+
 
 
 

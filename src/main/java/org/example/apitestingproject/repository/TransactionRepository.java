@@ -10,6 +10,7 @@ public interface TransactionRepository extends CrudRepository<Transaction,Intege
 
     List<Transaction> findByPurchase_Id(Integer id);
     List<Transaction> findByPurchaseIdIn(List<Integer> purchaseIds);
+    List<Transaction> findByPurchase_User_Id(int userId);
 
 
 }

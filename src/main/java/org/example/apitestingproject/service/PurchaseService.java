@@ -1,8 +1,13 @@
 package org.example.apitestingproject.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.example.apitestingproject.DTO.*;
 import org.example.apitestingproject.entities.*;
 import org.example.apitestingproject.repository.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.repository.query.Param;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,12 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @Transactional
@@ -27,6 +32,7 @@ public class PurchaseService {
     private final EmiCardRepository emiCardRepository;
     private final InstallmentScheduleRepository installmentScheduleRepository;
     private final TransactionRepository transactionRepository;
+    private final AuditLogRepository auditLogRepository;
     private static final BigDecimal PENALTY_RATE = new BigDecimal("0.02"); // 2% per month
 
 
@@ -34,13 +40,14 @@ public class PurchaseService {
     public PurchaseService(PurchaseRepository purchaseRepository,
                            UserRepository userRepository,
                            ProductRepository productRepository,
-                           EmiCardRepository emiCardRepository, InstallmentScheduleRepository installmentScheduleRepository, TransactionRepository transactionRepository) {
+                           EmiCardRepository emiCardRepository, InstallmentScheduleRepository installmentScheduleRepository, TransactionRepository transactionRepository, AuditLogRepository auditLogRepository) {
         this.purchaseRepository = purchaseRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.emiCardRepository = emiCardRepository;
         this.installmentScheduleRepository = installmentScheduleRepository;
         this.transactionRepository = transactionRepository;
+        this.auditLogRepository = auditLogRepository;
     }
 
     @Transactional
@@ -109,16 +116,20 @@ public class PurchaseService {
 
         // generate installment schedules
         generateInstallmentSchedule(savedPurchase);
+
+
         return savedPurchase;
     }
 
 
-    private void generateInstallmentSchedule(Purchase purchase) {
+    private void generateInstallmentSchedule(Purchase purchase)  {
         int tenure = purchase.getTenurePeriod();
         BigDecimal totalPayable = purchase.getAmount().add(purchase.getProcessingFeeApplied());
         BigDecimal monthlyInstallment = totalPayable.divide(BigDecimal.valueOf(tenure), 2, BigDecimal.ROUND_HALF_UP);
 
         List<InstallmentSchedule> schedules = new ArrayList<>();
+
+
 
 
         for (int i = 1; i <= tenure; i++) {
@@ -149,7 +160,7 @@ public class PurchaseService {
 
 
     @Transactional
-    public Transaction payInstallment(int installmentId, int userId) {
+    public Transaction payInstallment(int installmentId, int userId, String paymentMethod) throws JsonProcessingException {
         InstallmentSchedule inst = installmentScheduleRepository.findById(installmentId).orElseThrow();
         if (inst.getPurchase().getUser().getId() != userId)
             throw new RuntimeException("Unauthorized");
@@ -161,17 +172,52 @@ public class PurchaseService {
         BigDecimal amt = inst.getInstallmentAmount()
                 .add(Optional.ofNullable(inst.getPenaltyAmount()).orElse(BigDecimal.ZERO));
 
+        BigDecimal penaltyAmt = Optional.ofNullable(inst.getPenaltyAmount()).orElse(BigDecimal.ZERO);
+        BigDecimal totalAmt = inst.getInstallmentAmount().add(penaltyAmt);
 
         Transaction txn = new Transaction();
         txn.setPurchase(inst.getPurchase());
         txn.setAmountPaid(amt);
         txn.setTransactionType(Transaction.TransactionType.INSTALLMENT);
+        txn.setTransaction_method(paymentMethod);
         txn.setTransactionDate(LocalDate.now());
         transactionRepository.save(txn);
 
         inst.setPaymentStatus(InstallmentSchedule.PaymentStatus.Paid);
         inst.setPaidTransaction(txn);
         installmentScheduleRepository.save(inst);
+
+        String serverIp = "UNKNOWN";
+        try {
+            serverIp = InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        //Audit
+
+        Map<String, Object> actionDetails = new HashMap<>();
+        actionDetails.put("installmentId", inst.getId());
+        actionDetails.put("purchaseId", inst.getPurchase().getId());
+        actionDetails.put("userId", userId);
+        actionDetails.put("amount", totalAmt);
+        if (penaltyAmt != BigDecimal.ZERO){
+        actionDetails.put("penaltyAmount", penaltyAmt);
+        }
+        actionDetails.put("transactionType", txn.getTransactionType().name());
+        actionDetails.put("transactionMethod", txn.getTransaction_method());
+        actionDetails.put("paymentStatus", "SUCCESS");
+        actionDetails.put("timestamp", LocalDateTime.now().toString());
+
+        AuditLog audit = new AuditLog();
+        audit.setUser(inst.getPurchase().getUser());
+        audit.setActionType(AuditLog.ActionType.Payment);
+        audit.setActionTimestamp(LocalDateTime.now());
+        audit.setIpAddress(serverIp);
+        audit.setActionDetails(new ObjectMapper().writeValueAsString(actionDetails));
+
+        auditLogRepository.save(audit);
 
         return txn;
     }
@@ -180,15 +226,51 @@ public class PurchaseService {
 
 
     @Scheduled(cron = "0 0 0 * * ?") // every day at midnight
-    public int updateOverdueInstallments() {
+    public int updateOverdueInstallments() throws JsonProcessingException {
+
+        List<Integer> allInstIds = installmentScheduleRepository.findOverdueInstallmentIds(InstallmentSchedule.PaymentStatus.Pending,LocalDate.now());
         int updated = installmentScheduleRepository.markOverdueInstallments(InstallmentSchedule.PaymentStatus.Overdue, InstallmentSchedule.PaymentStatus.Pending, LocalDate.now());
         System.out.println("Updated " + updated + " overdue installments");
+
+        String serverIp = "UNKNOWN";
+        try {
+            serverIp = InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Audit
+
+        for (Integer instId : allInstIds) {
+            String finalServerIp = serverIp;
+            installmentScheduleRepository.findById(instId).ifPresent(installmentSchedule -> {
+                try {
+                    Map<String, Object> actionDetails = new HashMap<>();
+                    actionDetails.put("installmentId", instId);
+                    actionDetails.put("status", "Changed to Overdue");
+                    actionDetails.put("timestamp", LocalDateTime.now().toString());
+
+
+                    AuditLog audit = new AuditLog();
+                    audit.setUser(installmentSchedule.getPurchase().getUser());
+                    audit.setActionType(AuditLog.ActionType.InstallmentStatusUpdate);
+                    audit.setActionTimestamp(LocalDateTime.now());
+                    audit.setIpAddress(finalServerIp);
+                    audit.setActionDetails(new ObjectMapper().writeValueAsString(actionDetails));
+
+                    auditLogRepository.save(audit);
+
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+
+
         return updated;
     }
 
     public List<InstallmentSchedule> getOverdueInstallments() {
-//        System.out.println("HIII");
-//        System.out.println(installmentScheduleRepository.findPendingBefore(InstallmentSchedule.PaymentStatus.Pending, LocalDate.now()));
 
         return installmentScheduleRepository.findByPaymentStatus(InstallmentSchedule.PaymentStatus.Overdue);
     }
@@ -202,24 +284,68 @@ public class PurchaseService {
 
 
     @Transactional
-    public void calculatePenalties() {
-        List<InstallmentSchedule> overdueSchedules =  installmentScheduleRepository.findOverdueSchedules(InstallmentSchedule.PaymentStatus.Pending, LocalDate.now());
-        System.out.println(overdueSchedules.size());
+    public void calculatePenalties() throws JsonProcessingException {
+        List<InstallmentSchedule> overdueSchedules =
+                installmentScheduleRepository.findOverdueSchedules(
+                        InstallmentSchedule.PaymentStatus.Pending, LocalDate.now());
+        System.out.println("Overdue schedules: " + overdueSchedules.size());
+
+        String serverIp = "UNKNOWN";
+        try {
+            serverIp = InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
 
         for (InstallmentSchedule schedule : overdueSchedules) {
             long daysOverdue = ChronoUnit.DAYS.between(schedule.getDueDate(), LocalDate.now());
 
             // Grace period
-            int graceDays = 5; // you can make it configurable
+            int graceDays = 5;
             if (daysOverdue <= graceDays) {
-                schedule.setPenaltyAmount(BigDecimal.valueOf(0));
+                schedule.setPenaltyAmount(BigDecimal.ZERO);
                 continue;
             }
 
             // Exponential penalty slab logic
-            BigDecimal installmentAmout = schedule.getInstallmentAmount();
-            BigDecimal penalty = calculateExponentialPenalty(daysOverdue - graceDays, installmentAmout);
+            BigDecimal installmentAmount = schedule.getInstallmentAmount();
+            BigDecimal penalty = calculateExponentialPenalty(daysOverdue - graceDays, installmentAmount);
             schedule.setPenaltyAmount(penalty);
+
+            ObjectMapper mapper = new ObjectMapper();
+            // Create new audit log
+            Map<String, Object> actionDetails = new HashMap<>();
+            actionDetails.put("installmentId", schedule.getId());
+            actionDetails.put("purchaseId", schedule.getPurchase().getId());
+            actionDetails.put("status", "Changed to Overdue");
+            actionDetails.put("penaltyAmount", penalty);
+
+            AuditLog audit = new AuditLog();
+            audit.setUser(schedule.getPurchase().getUser());
+            audit.setActionType(AuditLog.ActionType.InstallmentStatusUpdate);
+            audit.setActionTimestamp(LocalDateTime.now());
+            audit.setIpAddress(serverIp);
+            audit.setActionDetails(mapper.writeValueAsString(actionDetails));
+
+
+//
+//
+//            Map<String, Object> actionDetails = new HashMap<>();
+//            actionDetails.put("installmentId", instId);
+//            actionDetails.put("status", "Changed to Overdue");
+//            actionDetails.put("timestamp", LocalDateTime.now().toString());
+
+//
+//            AuditLog audit = new AuditLog();
+//            audit.setUser(installmentSchedule.getPurchase().getUser());
+//            audit.setActionType(AuditLog.ActionType.InstallmentStatusUpdate);
+//            audit.setActionTimestamp(LocalDateTime.now());
+//            audit.setIpAddress(finalServerIp);
+//            audit.setActionDetails(new ObjectMapper().writeValueAsString(actionDetails));
+
+            auditLogRepository.save(audit);
         }
 
         installmentScheduleRepository.saveAll(overdueSchedules);
@@ -249,25 +375,25 @@ public class PurchaseService {
 
 
     private BigDecimal calculateExponentialPenalty(long days, BigDecimal principal) {
-        // Slab-wise daily rates
-        BigDecimal rate;
-        if (days <= 10) rate = new BigDecimal("0.005");       // 0.5% per day
-        else if (days <= 20) rate = new BigDecimal("0.008");  // 0.8% per day
-        else rate = new BigDecimal("0.0084");                 // 0.84% per day
+        BigDecimal rate = new BigDecimal("0.003"); // 0.5% per day
+        BigDecimal mcMultiplier;
 
-        BigDecimal base = BigDecimal.ONE.add(rate);
+        if (days <= 15) {
 
-        // Use MathContext for precision
-        MathContext mc = new MathContext(10, RoundingMode.HALF_UP);
+            mcMultiplier = BigDecimal.ONE.add(rate).pow((int) days, new MathContext(10, RoundingMode.HALF_UP));
+        } else {
 
-        BigDecimal multiplier = base.pow((int) days, mc);
+            BigDecimal expPart = BigDecimal.ONE.add(rate).pow(15, new MathContext(10, RoundingMode.HALF_UP)).subtract(BigDecimal.ONE);
+            BigDecimal linearPart = rate.multiply(BigDecimal.valueOf(days - 15));
+            mcMultiplier = BigDecimal.ONE.add(expPart.add(linearPart));
+        }
 
-        // Penalty = principal * ((1 + rate)^days - 1)
-        return principal.multiply(multiplier.subtract(BigDecimal.ONE), mc);
+        return principal.multiply(mcMultiplier.subtract(BigDecimal.ONE), new MathContext(10, RoundingMode.HALF_UP));
     }
 
+
     @Scheduled(cron = "0 0 0 * * ?") // every day at midnight run penalty recalculation
-    public void runPenaltyCalculation() {
+    public void runPenaltyCalculation() throws JsonProcessingException {
         calculatePenalties();
     }
 
