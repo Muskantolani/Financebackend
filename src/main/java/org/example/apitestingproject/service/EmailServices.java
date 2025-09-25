@@ -167,4 +167,12 @@ public class EmailServices {
         int expiredCount = otpVerificationRepository.markExpiredOtps(now, OtpVerification.Status.Expired);
         logger.info("Cleaned up {} expired OTPs", expiredCount);
     }
+    public void sendSimpleMessage(String to, String subject, String text) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject(subject);
+        message.setText(text);
+
+        mailSender.send(message);
+    }
 }
